@@ -9,7 +9,7 @@ userController.create = async (req, res) => {
         const { body } = req
         const user = new UserModel(body.profile[0])
         const salt = await bcryptjs.genSalt()
-        const hashpassword = await bcryptjs.hash(user.password, salt)
+        const hashpassword =bcryptjs.hash(user.password, salt)
         user.password = hashpassword
         const result = await user.save()
         // res.json(result)
