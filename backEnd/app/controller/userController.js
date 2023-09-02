@@ -9,7 +9,7 @@ userController.create = async (req, res) => {
         const { body } = req
         const user = new UserModel(body.profile[0])
         const salt = await bcryptjs.genSalt()
-        const hashpassword =bcryptjs.hash(user.password, salt)
+        const hashpassword =await bcryptjs.hash(user.password, salt)
         user.password = hashpassword
         const result = await user.save()
         // res.json(result)
@@ -17,7 +17,6 @@ userController.create = async (req, res) => {
             const { body } = req
             const profile = await Profile.create({ userId: result._id, ...body.user[0] })
             if (profile._id) {
-                console.log(profile);
                 res.json(profile)
                 console.log('profile creation successfull');
             } else {
