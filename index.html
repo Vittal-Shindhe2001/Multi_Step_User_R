@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Use Context</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <style>
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root">
+
+    </div>
+
+
+    <script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/babel-standalone@6.26.0/babel.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
+    <!-- bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm"
+        crossorigin="anonymous"></script>
+
+    <script type="text/babel">
+        const rootHandle = document.getElementById('root')
+        const { useState, createContext, useContext, useReducer, useEffect } = React
+
+        const FirstContext = createContext()
+        const userInfo = (state, action) => {
+            switch (action.type) {
+                case ('USER_INFO'): {
+                    return {
+                        ...state, user: [action.payload.user]
+                    }
+                }
+                case ('USER_ACCOUNT'): {
+                    return {
+                        ...state, account: [action.payload.account]
+                    }
+                }
+                case ('BACKANDNEXT'): {
+                    return { ...state, count: action.payload.count }
+                }
+                case ('UPDATE_USER_DETAILS'): {
+                    return { ...state, user: [...action.payload] }
+                }
+                case ('USER_ACCOUNT_UPDATE'): {
+                    return { ...state, account: [action.payload] }
+                }
+                default: {
+                    return { ...state }
+                }
+
+            }
+        }
+        const Confirmation = () => {
+            const { user, dispatch } = useContext(FirstContext)
+            const handleBack = () => {
+                dispatch({ type: "BACKANDNEXT", payload: { count: user.count - 1 } })
+            }
+            const handleSubmit = async (user) => {
+                try {
+                   const data={
+                    user:user.user,
+                    profile:user.account
+                   }
+                   const res=await axios.post('http://localhost:3089/api/user',data)
+                   console.log(res.data);
+                } catch (error) {
+                    console.log(error);
+                }
+
+
+            }
+            return (
+                <div className='container'>
+                    <div className='row'>
+                        <div className='col-md-3'> </div>
+                        <div className='col-md-6'>
+                            <div className='card shadow'>
+                                <div className='card-body'>
+                                    <h1>Confirmation </h1>
+                                    <h2>Personal Details </h2>
+                                    {
+                                        user.user.map((ele, i) => {
+                                            return (
+                                                <div key={i}>
+                                                    <h3>First Name-{ele.name} </h3>
+                                                    <h3>Last Name-{ele.lastName} </h3>
+                                                    <h3>Date of Birth-{ele.date} </h3>
+                                                </div>
+                                            )
+                                        })
+                                    }
+                                    <h2>Account Details </h2>
+                                    {
+                                        user.account.map((element, i) => {
+                                            return (
+                                                <div key={i}>
+                                                    <h3>Email-{element.email} </h3>
+                                                    <h3>Password-{element.password} </h3>
+
+                                                </div>
+                                            )
+                                        })
+                                    }
+                                    <button onClick={handleBack}>Back-Account Details </button>
+                                    <button onClick={() => { handleSubmit(user) }}>Submit </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className='col-md-3'> </div>
+                    </div>
+
+                </div>
+            )
+        }
+
+        const AccountDetails = () => {
+            const { user, dispatch } = useContext(FirstContext)
+            const [email, setEmail] = useState('')
+            const [password, setPassword] = useState('')
+            const [confirmPass, setConfirmPass] = useState('')
+            const [errorMessage, setErrorMessage] = useState({})
+            let error = {}
+            useEffect(() => {
+                if (user.count > 0) {
+                    const userData = user.account[user.count - 1] || {}
+                    setEmail(userData.email || '')
+                    setPassword(userData.password || "")
+                    setConfirmPass(userData.confirmPass || "")
+                }
+            }, [user.count]);
+            const formValidation = () => {
+                if (email.trim().length === 0) {
+                    error.email = 'Please Enter Email'
+                } else if (!email.includes('@')) {
+                    error.email = 'Please check email formate'
+                }
+
+                if (password.length < 8) {
+                    error.password = 'Password length should be greater than 8'
+                }
+
+                if (password !== confirmPass) {
+                    error.confirmPass = 'Please check entered password'
+
+                }
+            }
+            const handleNext = (e) => {
+                e.preventDefault()
+                formValidation()
+                const formDate = {
+                    email: email,
+                    password: password,
+                    confirmPass: confirmPass
+                }
+                if (Object.keys(error).length === 0) {
+                    if (user.account[user.count - 1]) {
+                        //edit
+                        dispatch({ type: "USER_ACCOUNT_UPDATE", payload: formDate })
+                    } else {
+                        // new
+                        dispatch({ type: "USER_ACCOUNT", payload: { account: formDate } })
+                    }
+                    dispatch({ type: 'BACKANDNEXT', payload: { count: user.count + 1 } })
+                }
+                setErrorMessage(error)
+            }
+
+            const handleBack = () => {
+                dispatch({ type: 'BACKANDNEXT', payload: { count: user.count - 1 } })
+
+
+
+            }
+            return (
+                <div className='container'>
+                    <div className='row'>
+                        <div className='col-md-4'> </div>
+                        <div className='col-md-4'>
+                            <div className='card shadow'>
+                                <div className='card-body'>
+                                    <h3>Account Details </h3>
+                                    <form >
+                                        <label>Email </label><br />
+                                        <input type='text' value={email} onChange={(e) => { setEmail(e.target.value) }} /><br />
+                                        {errorMessage.email && <p className='error'>{errorMessage.email} </p>}
+                                        <label>Password </label><br />
+                                        <input type='password' value={password} onChange={(e) => { setPassword(e.target.value) }} /><br />
+                                        {errorMessage.password && <p className='error'>{errorMessage.password} </p>}
+                                        <label>Confirm Password </label><br />
+                                        <input type='password' value={confirmPass} onChange={(e) => { setConfirmPass(e.target.value) }} /><br /><br />
+                                        {errorMessage.confirmPass && <p className='error'>{errorMessage.confirmPass} </p>}
+                                        <input type='submit' value='Back-Personal Details' onClick={handleBack} />&nbsp;
+                                        <input type='submit' value='Next-Confirmation' onClick={handleNext} />
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div className='col-md-4'> </div>
+                    </div>
+                </div>
+            )
+        }
+
+        const PersonalDetails = () => {
+            const { user, dispatch } = useContext(FirstContext)
+            const [name, setName] = useState('')
+            const [lastName, setLastName] = useState('')
+            const [date, setDate] = useState('')
+            const [error, setMessageError] = useState({})
+            const errors = {}
+
+
+            useEffect(() => {
+                if (user.count <= 0) {
+                    const userData = user.user
+                    if (userData.length > 0) {
+                        setName(userData[0].name)
+                        setLastName(userData[0].lastName)
+                        setDate(userData[0].date)
+                    } else {
+                        setName('')
+                        setLastName('')
+                        setDate('')
+                    }
+                }
+            }, [user.count])
+            const formValidation = () => {
+
+                if (name.trim().length === 0) {
+                    errors.name = 'Please Enter name'
+                }
+
+                if (lastName.trim().length === 0) {
+                    errors.lastName = 'Please Enter LastName'
+                }
+
+                if (date.trim().length === 0) {
+                    errors.date = 'Please Select Date'
+
+                }
+
+            }
+            const handleSubmit = (e) => {
+
+                e.preventDefault()
+                formValidation()
+                const formDate = {
+                    name: name,
+                    lastName: lastName,
+                    date: date
+                }
+                if (Object.keys(errors).length === 0) {
+                    if (user.user.length > 0) {
+                        dispatch({ type: 'UPDATE_USER_DETAILS', payload: formDate })
+                    } else {
+                        dispatch({ type: 'USER_INFO', payload: { user: formDate } })
+                        dispatch({ type: 'BACKANDNEXT', payload: { count: user.count + 1 } })
+                    }
+
+                } else {
+                    setMessageError(errors)
+                }
+
+
+            }
+            return (
+                <div className='container'>
+                    <div className='row'>
+                        <div className='col-md-4'> </div>
+                        <div className='col-md-4'>
+                            <div className='card shadow'>
+                                <div className='card-body'>
+                                    <h3>Personal Details </h3>
+                                    <form onSubmit={handleSubmit}>
+                                        <label>First Name </label><br />
+                                        <input type='text' value={name} onChange={(e) => { setName(e.target.value) }} /><br />
+                                        {error.name && <div><p className='error'>{error.name} </p></div>}
+                                        <label>Last Name </label><br />
+                                        <input type='text' value={lastName} onChange={(e) => { setLastName(e.target.value) }} /><br />
+                                        {error.lastName && <p className='error'>{error.lastName} </p>}
+                                        <label>Date of Birth </label><br />
+                                        <input type='Date' value={date} onChange={(e) => { setDate(e.target.value) }} /><br /><br />
+                                        {error.date && <p className='error'>{error.date} </p>}
+                                        <input type='submit' value='Next-Account Details' />
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div className='col-md-4'> </div>
+
+                    </div>
+                </div>
+            )
+        }
+        const App = () => {
+            const [user, dispatch] = useReducer(userInfo, { user: [], account: [], count: 0 })
+            return (
+                <div>
+                    <FirstContext.Provider value={{ user, dispatch }}>
+                        <div>
+                            <center><h1>Registration Form </h1> </center>
+                            {user.count === 0 && <PersonalDetails />}
+                            {user.count === 1 && <AccountDetails />}
+                            {user.count === 2 && <Confirmation />}
+
+                        </div>
+                    </FirstContext.Provider>
+                </div >
+
+
+            )
+
+        }
+
+        ReactDOM.render(<App />, rootHandle)
+    </script>
+</body>
+
+</html>
