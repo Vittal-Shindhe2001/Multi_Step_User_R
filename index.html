@@ -305,7 +305,7 @@
             )
         }
         const App = () => {
-            const [user, dispatch] = useReducer(userInfo, { user: [], account: [], count: 0 })
+            const [user, dispatch] = useReducer(userInfo, { user: {}, account: {}, count: 0 })
             return (
                 <div>
                     <FirstContext.Provider value={{ user, dispatch }}>
